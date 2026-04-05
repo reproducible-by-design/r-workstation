@@ -18,7 +18,10 @@ error() { printf "\033[0;31m[install]\033[0m %s\n" "$1" >&2; }
 
 if [ -d "$INSTALL_DIR/.git" ]; then
     info "Updating existing installation at $INSTALL_DIR..."
-    git -C "$INSTALL_DIR" pull --ff-only
+    if ! git -C "$INSTALL_DIR" pull --ff-only 2>/dev/null; then
+        error "Could not update $INSTALL_DIR (local changes or network issue)."
+        info "Continuing with the existing version."
+    fi
 else
     if [ -d "$INSTALL_DIR" ]; then
         error "$INSTALL_DIR already exists but is not a git repository."

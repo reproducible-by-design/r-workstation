@@ -18,13 +18,16 @@ usage() {
 Usage: ./setup.sh [OPTIONS]
 
 Options:
-  --all           Install all layers (default)
-  --terminal      Layer 1: Zsh + Oh My Zsh + plugins
-  --editor        Layer 2: VS Code + Jupyter extension
-  --environment   Layer 3: Conda/Mamba + R environment
-  --help          Show this message
+  --all              Install all layers (default)
+  --terminal         Layer 1: Zsh + Oh My Zsh + plugins
+  --editor           Layer 2: VS Code + Jupyter extension
+  --environment      Layer 3: Conda/Mamba + R environment
+  --name <name>      Name for the conda environment (default: prompted interactively)
+  --dry-run          Show what would be done without making any changes
+  --help             Show this message
 
 Layers can be combined: ./setup.sh --terminal --environment
+Create a named environment: ./setup.sh --environment --name my-project
 
 For more information, see README.md.
 EOF
@@ -73,6 +76,17 @@ while [ $# -gt 0 ]; do
             RUN_ENVIRONMENT=true
             ANY_SELECTED=true
             ;;
+        --name)
+            shift
+            if [ $# -eq 0 ]; then
+                error "--name requires a value"
+                exit 1
+            fi
+            export R_ENV_NAME="$1"
+            ;;
+        --dry-run)
+            export DRY_RUN=true
+            ;;
         --help|-h)
             usage
             exit 0
@@ -91,6 +105,13 @@ if [ "$ANY_SELECTED" = false ]; then
     exit 1
 fi
 
+# Warn if --name is set but --environment is not selected
+if [ -n "${R_ENV_NAME:-}" ] && [ "$RUN_ENVIRONMENT" = false ]; then
+    error "--name was provided but --environment was not selected."
+    error "Use: ./setup.sh --environment --name $R_ENV_NAME"
+    exit 1
+fi
+
 # ── System info ──────────────────────────────────────────────────────────────
 
 OS="$(uname -s)"
@@ -99,6 +120,9 @@ ARCH="$(uname -m)"
 echo ""
 info "r-workstation setup"
 info "OS: $OS | Arch: $ARCH"
+if [ "${DRY_RUN:-}" = true ]; then
+    info "DRY RUN: no changes will be made"
+fi
 echo ""
 
 # ── Run selected layers ─────────────────────────────────────────────────────

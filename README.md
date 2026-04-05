@@ -6,13 +6,14 @@ Companion to the blog post [A Modern R Workstation](https://www.reproducible-sci
 
 ## Supported platforms
 
-- Linux x86_64 (Debian/Ubuntu-based)
-- macOS Apple Silicon (ARM)
+- Linux x86_64 (Debian/Ubuntu for VS Code auto-install; Zsh and conda work on other distros)
+- macOS (Apple Silicon and Intel)
 
 ## Prerequisites
 
 - A terminal and an internet connection
 - `git` and `curl` installed
+- ~4-5 GB of disk space (mostly the conda environment with R and packages)
 
 ## Quick start
 
@@ -32,6 +33,15 @@ cd r-workstation
 
 Both approaches install all three layers. You can also install them individually.
 
+### Preview before installing
+
+Use `--dry-run` to see what would happen without making any changes:
+
+```bash
+./setup.sh --dry-run
+./setup.sh --dry-run --terminal --environment
+```
+
 ## Layers
 
 Each layer is independent. Use only what you need.
@@ -47,6 +57,10 @@ Installs Zsh (if needed), Oh My Zsh, and two plugins:
 - **zsh-autosuggestions**: shows predicted commands from your history as you type.
 - **zsh-syntax-highlighting**: colors valid commands green and errors red, before you press Enter.
 
+Zsh is enabled for interactive sessions via a guarded line in `.bashrc`. This is safer than changing the login shell with `chsh`, especially on servers accessed via SSH: if Zsh is ever removed, Bash takes over automatically. The line only runs for interactive sessions, so `scp`, `rsync`, and cron jobs are unaffected.
+
+To undo, remove the lines at the end of `~/.bashrc` marked `# Added by r-workstation`.
+
 ### Layer 2: Editor
 
 ```bash
@@ -55,15 +69,17 @@ Installs Zsh (if needed), Oh My Zsh, and two plugins:
 
 Installs VS Code (if needed) and the Jupyter extension. The R language server extension is not installed — it is not needed for the notebook/kernel approach.
 
+On Linux, VS Code auto-install requires a Debian/Ubuntu-based system. On other distros, install VS Code from your package manager first, then run this layer for the extensions.
+
 ### Layer 3: Environment
 
 ```bash
 ./setup.sh --environment
 ```
 
-Installs Miniforge (if neither conda nor mamba is available) and creates the `r-workstation` conda environment from `environment.yml`. This environment includes R, common R packages, the Jupyter R kernel, and Python.
+Installs Miniforge (if neither conda nor mamba is available) and creates a conda environment from `environment.yml`. This environment includes R, common R packages, the Jupyter R kernel, and Python.
 
-After setup, open a `.ipynb` file in VS Code and select the **R (r-workstation)** kernel from the kernel picker.
+After setup, open a `.ipynb` file in VS Code and select the R kernel from the kernel picker.
 
 ### Combining layers
 
@@ -71,26 +87,34 @@ After setup, open a `.ipynb` file in VS Code and select the **R (r-workstation)*
 ./setup.sh --terminal --environment
 ```
 
-## Customizing the environment
+## Multiple environments
 
-Edit `environment.yml` to add or remove packages:
-
-```yaml
-dependencies:
-  - r-base=4.4
-  - r-irkernel
-  - r-tidyverse
-  - r-sf          # add geospatial support
-  - r-DBI         # add database support
-```
-
-Then update the environment:
+Each project can have its own isolated environment. Use `--name` to create environments with different names:
 
 ```bash
-mamba env update -n r-workstation -f environment.yml --prune
+./setup.sh --environment --name my-project
+./setup.sh --environment --name another-project
 ```
 
-R packages in conda-forge are prefixed with `r-` (e.g., `r-ggplot2`, `r-data.table`). System-level libraries (GDAL, Java, etc.) can also be added as conda packages, avoiding the need for manual system installation.
+Each gets its own R installation, packages, and Jupyter kernel (shown as `R (my-project)` in VS Code). If you skip `--name`, the script prompts you interactively, defaulting to `r-workstation`.
+
+During setup, you can optionally copy `environment.yml` to your project directory so it can be version-controlled alongside your code. Each project should have its own copy.
+
+## Adding packages
+
+The recommended workflow for adding new dependencies:
+
+1. Search for the package on [anaconda.org](https://anaconda.org) (R packages are typically prefixed `r-`, e.g., `r-sf`, `r-DBI`).
+2. Add the package to your project's `environment.yml`.
+3. Update the environment:
+
+```bash
+mamba env update -n my-project -f environment.yml
+```
+
+This keeps `environment.yml` as the single source of truth for your environment. Collaborators can recreate it with `mamba env create -n my-project -f environment.yml`.
+
+System-level libraries (GDAL, Java, etc.) can also be added as conda packages, avoiding the need for manual system installation.
 
 ## AI tools
 
@@ -103,28 +127,37 @@ This repository does not pre-install any AI coding assistant. If your organizati
 
 Review your organization's guidelines before adopting any AI tool. Always review AI-generated output before acting on it.
 
+## Configuration reference
+
+| File | Purpose |
+|---|---|
+| `environment.yml` | Base template for conda environments (R, packages, kernel) |
+| `config/zshrc.snippet` | Reference for manual Oh My Zsh plugin configuration |
+| `config/vscode/settings.json` | VS Code settings for Jupyter notebooks |
+| `config/vscode/extensions.json` | Recommended VS Code extensions (reference only) |
+
 ## Troubleshooting
 
 **VS Code does not show the R kernel**
 
-Make sure the `r-workstation` conda environment is created and the kernel is registered:
+Make sure the conda environment is created and the kernel is registered:
 
 ```bash
-conda activate r-workstation
-Rscript -e 'IRkernel::installspec(user = TRUE, displayname = "R (r-workstation)")'
+conda activate <your-env-name>
+Rscript -e 'IRkernel::installspec(user = TRUE, displayname = "R (<your-env-name>)")'
 ```
 
 Then restart VS Code. The kernel should appear in the Jupyter kernel picker.
 
-**Zsh is not my default shell after running setup**
+**Zsh is not active after running setup**
 
-The script runs `chsh -s /path/to/zsh`, which requires your password. If it failed silently, run it manually:
+The setup adds a handoff line to `~/.bashrc`. Open a new terminal window for it to take effect. If it still does not work, check that `~/.bashrc` contains the line `exec zsh -l` near the end.
+
+If you prefer to change your login shell directly (not recommended on servers):
 
 ```bash
 chsh -s $(which zsh)
 ```
-
-Then restart your terminal.
 
 **VS Code keeps asking to install the R language server**
 
@@ -137,6 +170,24 @@ Mamba (included with Miniforge) is significantly faster than conda for environme
 ```bash
 conda install -n base -c conda-forge mamba
 ```
+
+**VS Code auto-install fails on Fedora/Arch Linux**
+
+Layer 2 auto-installs VS Code only on Debian/Ubuntu-based systems. On other distros, install VS Code from your package manager first:
+
+- Fedora: `sudo dnf install code`
+- Arch: `yay -S visual-studio-code-bin`
+- Or download from [code.visualstudio.com](https://code.visualstudio.com)
+
+Then run `./setup.sh --editor` to install the Jupyter extensions.
+
+## Environment variables
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `R_ENV_NAME` | Set environment name non-interactively | Prompted (default: `r-workstation`) |
+| `R_WORKSTATION_DIR` | Clone location for the web installer | `~/.r-workstation` |
+| `DRY_RUN` | Set to `true` to preview without changes | `false` |
 
 ## License
 
