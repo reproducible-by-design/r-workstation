@@ -1,0 +1,24 @@
+name: r-workstation
+channels:
+  - conda-forge
+dependencies:
+  # R
+  - r-base=4.4
+  - r-irkernel
+
+  # Common R packages
+  - r-tidyverse
+  - r-ggplot2
+  - r-devtools
+  - r-rmarkdown
+  - r-jsonlite
+  - r-httr2
+  - r-data.table
+
+  # Jupyter (provides the notebook interface for VS Code)
+  - jupyter
+  - notebook
+  - ipykernel
+
+  # Python (required by Jupyter)
+  - python>=3.11

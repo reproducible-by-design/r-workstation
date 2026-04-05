@@ -1,0 +1,6 @@
+{
+  "jupyter.askForKernelRestart": false,
+  "notebook.output.textLineLimit": 500,
+  "notebook.cellToolbarLocation": "right",
+  "notebook.output.scrolling": true
+}
