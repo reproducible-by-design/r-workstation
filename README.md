@@ -17,75 +17,41 @@ Companion to the blog post [A Modern R Workstation](https://www.reproducible-sci
 
 ## Quick start
 
-One-liner (clones the repo and runs setup):
+Run this in your terminal:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/reproducible-by-design/r-workstation/main/install.sh)"
 ```
 
-Or clone manually:
+This will clone the repository to `~/.r-workstation` (or update it if already there), then walk you through three setup layers:
+
+1. **Terminal** — installs Zsh, Oh My Zsh, and two plugins for command history search and syntax highlighting.
+2. **Editor** — installs VS Code and the Jupyter notebook extension.
+3. **Environment** — installs conda/mamba and creates an R environment with a Jupyter kernel. You will be prompted to choose a name for the environment.
+
+The script detects what is already installed and skips those steps. It will ask for your password only if it needs to install system packages (Zsh, VS Code). You will be prompted to choose a name for the conda environment.
+
+If you prefer to inspect the scripts before running them, see [Manual installation](#manual-installation) below.
+
+## Creating your first R notebook
+
+Once setup is complete, open VS Code and create a notebook:
+
+1. Open VS Code.
+2. Open the Command Palette: `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS).
+3. Type **"Create: New Jupyter Notebook"** and select it.
+4. An empty notebook opens. In the top-right corner, click **"Select Kernel"**.
+5. Choose **"Jupyter Kernel..."**, then select **"R (\<your-env-name\>)"** from the list.
+6. Type `R.version` in the first cell and press `Shift+Enter` to run it. If you see the R version printed, everything is working.
+
+If the R kernel does not appear, try opening VS Code from a terminal where the environment is active:
 
 ```bash
-git clone https://github.com/reproducible-by-design/r-workstation.git
-cd r-workstation
-./setup.sh --all
+conda activate <your-env-name>
+code .
 ```
 
-Both approaches install all three layers. You can also install them individually.
-
-### Preview before installing
-
-Use `--dry-run` to see what would happen without making any changes:
-
-```bash
-./setup.sh --dry-run
-./setup.sh --dry-run --terminal --environment
-```
-
-## Layers
-
-Each layer is independent. Use only what you need.
-
-### Layer 1: Terminal
-
-```bash
-./setup.sh --terminal
-```
-
-Installs Zsh (if needed), Oh My Zsh, and two plugins:
-
-- **zsh-autosuggestions**: shows predicted commands from your history as you type.
-- **zsh-syntax-highlighting**: colors valid commands green and errors red, before you press Enter.
-
-Zsh is enabled for interactive sessions via a guarded line in `.bashrc`. This is safer than changing the login shell with `chsh`, especially on servers accessed via SSH: if Zsh is ever removed, Bash takes over automatically. The line only runs for interactive sessions, so `scp`, `rsync`, and cron jobs are unaffected.
-
-To undo, remove the lines at the end of `~/.bashrc` marked `# Added by r-workstation`.
-
-### Layer 2: Editor
-
-```bash
-./setup.sh --editor
-```
-
-Installs VS Code (if needed) and the Jupyter extension. The R language server extension is not installed — it is not needed for the notebook/kernel approach.
-
-On Linux, VS Code auto-install requires a Debian/Ubuntu-based system. On other distros, install VS Code from your package manager first, then run this layer for the extensions.
-
-### Layer 3: Environment
-
-```bash
-./setup.sh --environment
-```
-
-Installs Miniforge (if neither conda nor mamba is available) and creates a conda environment from `environment.yml`. This environment includes R, common R packages, the Jupyter R kernel, and Python.
-
-After setup, open a `.ipynb` file in VS Code and select the R kernel from the kernel picker.
-
-### Combining layers
-
-```bash
-./setup.sh --terminal --environment
-```
+The `examples/` directory in this repository contains a test notebook you can also use to verify the setup if you cloned the repo manually.
 
 ## Multiple environments
 
@@ -121,11 +87,67 @@ System-level libraries (GDAL, Java, etc.) can also be added as conda packages, a
 This repository does not pre-install any AI coding assistant. If your organization permits their use, some options include:
 
 - [GitHub Copilot](https://github.com/features/copilot) (VS Code extension)
-- [ChatGPT Codex](https://openai.com/index/codex/) (OpenAI)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (Anthropic, terminal CLI)
-- [Gemini Code Assist](https://cloud.google.com/gemini/docs/codeassist/overview) (Google, VS Code extension)
+- [ChatGPT Codex](https://chatgpt.com/codex/) (OpenAI)
+- [Claude Code](https://claude.com/product/claude-code) (Anthropic, terminal CLI)
+- [Gemini Code Assist](https://codeassist.google/) (Google, VS Code extension)
 
 Review your organization's guidelines before adopting any AI tool. Always review AI-generated output before acting on it.
+
+## Manual installation
+
+If you prefer to inspect the scripts before running them:
+
+```bash
+git clone https://github.com/reproducible-by-design/r-workstation.git
+cd r-workstation
+./setup.sh --dry-run    # preview what would happen
+./setup.sh --all        # install everything
+```
+
+You can install specific layers individually, or combine them:
+
+```bash
+./setup.sh --terminal                       # only the terminal layer
+./setup.sh --environment --name my-project  # only the environment, with a custom name
+./setup.sh --terminal --environment         # two layers at once
+```
+
+## Layers in detail
+
+Each layer is independent. Use only what you need.
+
+### Layer 1: Terminal
+
+```bash
+./setup.sh --terminal
+```
+
+Installs Zsh (if needed), Oh My Zsh, and two plugins:
+
+- **zsh-autosuggestions**: shows predicted commands from your history as you type.
+- **zsh-syntax-highlighting**: colors valid commands green and errors red, before you press Enter.
+
+Zsh is enabled for interactive sessions via a guarded line in `.bashrc`. This is safer than changing the login shell with `chsh`, especially on servers accessed via SSH: if Zsh is ever removed, Bash takes over automatically. The line only runs for interactive sessions, so `scp`, `rsync`, and cron jobs are unaffected.
+
+To undo, remove the lines at the end of `~/.bashrc` marked `# Added by r-workstation`.
+
+### Layer 2: Editor
+
+```bash
+./setup.sh --editor
+```
+
+Installs VS Code (if needed) and the Jupyter extension. The R language server extension is not installed — it is not needed for the notebook/kernel approach.
+
+On Linux, VS Code auto-install requires a Debian/Ubuntu-based system. On other distros, install VS Code from your package manager first, then run this layer for the extensions.
+
+### Layer 3: Environment
+
+```bash
+./setup.sh --environment
+```
+
+Installs Miniforge (if neither conda nor mamba is available) and creates a conda environment from `environment.yml`. This environment includes R, common R packages, the Jupyter R kernel, and Python.
 
 ## Configuration reference
 
